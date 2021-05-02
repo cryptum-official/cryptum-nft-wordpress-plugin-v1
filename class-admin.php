@@ -35,7 +35,23 @@ function cryptum_nft_options()
 		</div>
 		<div class="cryptum_nft_admin_main_wrap">
 			<div class="cryptum_nft_admin_main_left">
-				<p><?php echo __('This plugin allows to connect a NFT to any product.') ?></p>
+				<p class="cryptum_nft_admin_main_p">
+					<?php echo __('This plugin allows to configure your store environment. It is necessary to create an account in
+					Cryptum Dashboard to receive the store id and API key to fill out the fields below.') ?>
+				</p>
+				<p class="cryptum_nft_admin_main_p">
+					<strong>Obs:</strong>
+
+					<br>
+					<?php echo __('If you are just testing the plugin, you should go to the ') ?>
+					<a href="https://backoffice-dev.cryptum.io/" target="_blank">sandbox dashboard</a>
+					<?php echo __(' to get the store id and API key for testnet.') ?>
+
+					<br>
+					<?php echo __('If you will use the plugin in production mode, you should go to the ') ?>
+					<a href="https://backoffice.cryptum.io/" target="_blank">production dashboard</a>
+					<?php echo __('to get the store id and API key for production.') ?>
+				</p>
 				<br>
 				<form method="post" action="options.php" id="options">
 
@@ -50,11 +66,11 @@ function cryptum_nft_options()
 							<td>
 								<select name="cryptum_nft[environment]">
 									<option value="production" <?php if ($options['environment'] == 'production') {
-																					echo ' selected="selected"';
-																				} ?>>Production</option>
+																	echo ' selected="selected"';
+																} ?>>Production</option>
 									<option value="test" <?php if ($options['environment'] == 'test') {
-																					echo ' selected="selected"';
-																				} ?>>Test</option>
+																echo ' selected="selected"';
+															} ?>>Test</option>
 								</select>
 								<br>
 								<p><?php echo __('Choose your environment. The Test environment should be used for testing only.'); ?></p>

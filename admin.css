@@ -54,13 +54,13 @@
 .cryptum_nft_admin_fl {
   float: left;
 }
+.cryptum_nft_admin_main_p {
+  font-size: 14px;
+}
 
 img.cryptum_nft_admin_fl {
   vertical-align: top;
   padding-right: 5px;
-  margin-bottom: 10px;
-}
-img.paypal {
   margin-bottom: 10px;
 }
 
