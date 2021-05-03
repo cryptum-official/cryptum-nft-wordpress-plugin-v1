@@ -1,1 +1,1 @@
-# cryptum-nft-woocommerce-plugin
+# cryptum-nft-wordpress-plugin
