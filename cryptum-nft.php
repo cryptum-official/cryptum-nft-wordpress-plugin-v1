@@ -40,39 +40,87 @@ function cryptum_nft_plugin_loaded()
 	add_action('woocommerce_product_data_panels', function () {
 		echo '<div id="cryptum_nft_options" class="panel woocommerce_options_panel hidden">';
 
-		woocommerce_wp_text_input(
+		woocommerce_wp_checkbox(
 			array(
-				'id' => '_cryptum_nft_options_contract_id',
+				'id' => '_cryptum_nft_options_token_enable',
 				'placeholder' => '',
-				'label' => __('NFT contract id', 'woocommerce'),
-				'description' => __('Contract id generated in Cryptum Dashboard'),
+				'label' => __('Enable token link', 'woocommerce'),
+				'description' => __('Enable/Disable link between this product and a token'),
 				'desc_tip' => 'true'
 			)
 		);
+		echo '<hr>';
 		woocommerce_wp_text_input(
 			array(
 				'id' => '_cryptum_nft_options_token_uri',
 				'placeholder' => 'Ex: https://example.com/',
 				'label' => __('Token URI', 'woocommerce'),
-				'description' => __('Token URI'),
+				'description' => __('Token URI pointing to the location that has this token attributes'),
 				'desc_tip' => 'true'
 			)
 		);
 
+		wc_enqueue_js("
+			function handleTokenEnableCheckbox() {
+				if (jQuery('#_cryptum_nft_options_token_enable').is(':checked')) {
+					jQuery('.form-field._cryptum_nft_options_token_uri_field').show();
+				} else {
+					jQuery('.form-field._cryptum_nft_options_token_uri_field').hide();
+				}
+			}
+			jQuery('#_cryptum_nft_options_token_enable').click(function() {
+				handleTokenEnableCheckbox();
+			});
+			handleTokenEnableCheckbox();
+		");
 		echo '</div>';
 	});
 
 	add_action('woocommerce_process_product_meta', function ($post_id) {
-		// _log('Saving custom fields ' . $post_id . json_encode($_POST));
+		_log('Saving custom fields ' . $post_id . json_encode($_POST));
 		$product = wc_get_product($post_id);
-
-		$cryptum_nft_options_contract_id = isset($_POST['_cryptum_nft_options_contract_id']) ? $_POST['_cryptum_nft_options_contract_id'] : '';
-		$cryptum_nft_options_token_uri = isset($_POST['_cryptum_nft_options_token_uri']) ? $_POST['_cryptum_nft_options_token_uri'] : '';
-
-		$product->update_meta_data('_cryptum_nft_options_contract_id', sanitize_text_field($cryptum_nft_options_contract_id));
-		$product->update_meta_data('_cryptum_nft_options_token_uri', sanitize_text_field($cryptum_nft_options_token_uri));
+		$product->update_meta_data('_cryptum_nft_options_token_enable', $_POST['_cryptum_nft_options_token_enable']);
+		$product->update_meta_data('_cryptum_nft_options_token_uri', $_POST['_cryptum_nft_options_token_uri']);
 		$product->save();
 	});
+
+	add_action('woocommerce_product_thumbnails', function () {
+		$contractAddress = '0xbD72Dde3b53fDC81b33BA6615403DDf802bE7c57';
+		$blockchain = 'Celo';
+		echo (
+			'<div id="_cryptum_nft_info" style="background-color: #75757526; padding: 10px;">
+				<div style="display: flex;">
+					<h4 style="flex-grow:1;">' . __('Chain info') . '</h4>
+					<span id="_cryptum_nft_token_info" title="' . __('When you buy this product, you will receive a non-fungible token from the ' . $blockchain . ' network. The redemption instructions will be sent by email.') . '">
+						<i class="dashicons dashicons-info"></i>
+					</span>
+				</div>
+				<hr style="margin: 5px 0;">
+				<p style="font-size: 14px;">' . __('Contract Address') . ': ' . $contractAddress . '</p>
+				<p style="font-size: 14px;">Blockchain: ' . $blockchain . '</p>
+			</div>
+			<style>
+			.ui-tooltip {
+				padding: 10px 20px;
+				color: white;
+				border-radius: 20px;
+				font-size: 14px sans-serif;
+				box-shadow: 0 0 7px grey;
+			}
+			</style>
+			'
+		);
+
+		wp_enqueue_style('jquery-ui', 'http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
+		wp_enqueue_script('jquery-ui', 'https://code.jquery.com/ui/1.12.1/jquery-ui.js');
+		wc_enqueue_js("
+			jQuery(function() {
+				jQuery('#_cryptum_nft_token_info').tooltip({
+					position: { my: 'left+15 center', at: 'right center' }
+				});
+			});
+		");
+	}, 19);
 }
 
 function _log($message, $level = 'info')

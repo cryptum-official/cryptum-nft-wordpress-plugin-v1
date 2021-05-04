@@ -4,6 +4,7 @@ function cryptum_nft_init()
 {
 	register_setting('cryptum_nft_options', 'cryptum_nft', array(
 		'environment' => 'production',
+		'contractId' => '',
 		'storeId' => '',
 		'apikey' => '',
 	));
@@ -88,6 +89,13 @@ function cryptum_nft_options()
 							<td>
 								<input id="apikey" type="text" name="cryptum_nft[apikey]" value="<?php echo $options['apikey']; ?>" style="width: 70%" />
 								<p><?php echo __('Enter your Cryptum API Key (Generated in Cryptum Dashboard, API Keys Section)'); ?></p>
+							</td>
+						</tr>
+						<tr valign="top">
+							<th scope="row"><label for="contractId">NFT Contract Id</label></th>
+							<td>
+								<input id="contractId" type="text" name="cryptum_nft[contractId]" value="<?php echo $options['contractId']; ?>" style="width: 70%" />
+								<p><?php echo __('Enter the NFT contract id (Created in Cryptum Dashboard)'); ?></p>
 							</td>
 						</tr>
 					</table>
