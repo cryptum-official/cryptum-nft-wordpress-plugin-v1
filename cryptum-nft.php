@@ -128,8 +128,21 @@ function cryptum_nft_plugin_loaded()
 	}, 20);
 
 	// after checkout send email
-	add_action('woocommerce_thankyou', function () {
+	add_action('woocommerce_thankyou', function ($order_id) {
+		$order = wc_get_order($order_id);
 		$options = get_option('cryptum_nft');
+		$blockchain = $options['blockchain'];
+		$url = $options['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://a234ae7c00f9.ngrok.io';
+		$response = wp_safe_remote_post("$url/checkout/mint-nft?protocol=$blockchain", [
+			'body' => json_encode([
+				'storeId' => $options['storeId'],
+				'contractAddress' => $options['contractAddress']
+			]),
+			'headers' => ['x-api-key' => $options['apikey']],
+			'data_format' => 'body',
+			'method' => 'POST',
+			'timeout' => 60
+		]);
 	}, 10, 1);
 }
 
