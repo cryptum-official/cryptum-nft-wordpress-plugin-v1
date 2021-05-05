@@ -2,12 +2,40 @@
 
 function cryptum_nft_init()
 {
-	register_setting('cryptum_nft_options', 'cryptum_nft', array(
-		'environment' => 'production',
-		'contractId' => '',
-		'storeId' => '',
-		'apikey' => '',
-	));
+	register_setting('cryptum_nft_options', 'cryptum_nft', function ($input) {
+		$options = get_option('cryptum_nft');
+
+		$url = $input['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://api-dev.cryptum.io';
+		$contractId = $input['contractId'];
+
+		$response = wp_safe_remote_get("$url/contract/$contractId", ['x-api-key' => $input['apikey']]);
+
+		if (is_wp_error($response)) {
+			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+			add_settings_error(
+				'cryptum_nft',
+				'Configuration error',
+				__($response->get_error_message(), 'cryptum_nft'),
+				'error'
+			);
+			return $options;
+		}
+		$responseBody = json_decode($response['body'], true);
+
+		if (isset($responseBody['error'])) {
+			$error_message = $responseBody['error']['message'];
+			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+			add_settings_error(
+				'cryptum_nft',
+				'Configuration error',
+				__($error_message, 'cryptum_nft'),
+				'error'
+			);
+			return $options;
+		}
+
+		return $input;
+	});
 }
 add_action('admin_init', 'cryptum_nft_init');
 
