@@ -37,7 +37,7 @@ function cryptum_nft_init()
 		}
 
 		$foundAddress = array_filter($responseBody, function ($obj) use ($contractAddress, $blockchain) {
-			return $obj['deployAddress'] == $contractAddress and $obj['protocol'] == $blockchain;
+			return $obj['deployAddress'] == $contractAddress and $obj['protocol'] == $blockchain and $obj['tokenType'] == 'erc721';
 		});
 		if (!isset($foundAddress) or empty($foundAddress)) {
 			add_settings_error(

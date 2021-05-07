@@ -81,7 +81,7 @@ function cryptum_nft_plugin_loaded()
 	});
 
 	add_action('woocommerce_process_product_meta', function ($post_id) {
-		_log('Saving custom fields ' . $post_id . json_encode($_POST));
+		//_log('Saving custom fields ' . $post_id . json_encode($_POST));
 		$product = wc_get_product($post_id);
 		$product->update_meta_data('_cryptum_nft_options_token_enable', $_POST['_cryptum_nft_options_token_enable']);
 		$product->update_meta_data('_cryptum_nft_options_token_uri', $_POST['_cryptum_nft_options_token_uri']);
@@ -121,68 +121,81 @@ function cryptum_nft_plugin_loaded()
 		}
 	}, 20);
 
-	// after checkout send email
-	add_action('woocommerce_thankyou', function ($order_id) {
+	add_action('woocommerce_order_status_changed', function ($order_id, $old_status, $new_status) {
+		//_log($old_status . ' -> ' . $new_status);
+		if ($new_status == 'processing') {
+			$order = wc_get_order($order_id);
+			
+			$user = $order->get_user();
+			$options = get_option('cryptum_nft');
+			$blockchain = $options['blockchain'];
+			$contractAddress = $options['contractAddress'];
+			$storeId = $options['storeId'];
 
-		$options = get_option('cryptum_nft');
-		$blockchain = $options['blockchain'];
-		$contractAddress = $options['contractAddress'];
-		$storeId = $options['storeId'];
-		if (!isset($storeId) or !isset($contractAddress) or !isset($blockchain)) {
-			_log('Error in processing NFT minting: missing Crytum NFT settings');
-			wc_add_notice(__('Missing Cryptum NFT settings', 'cryptum_nft'), 'error');
-			return;
-		}
+			if (!isset($storeId) or !isset($contractAddress) or !isset($blockchain)) {
+				_log('Error in processing NFT minting: missing Crytum NFT settings');
+				wc_add_notice(__('Missing Cryptum NFT settings', 'cryptum_nft'), 'error');
+				return;
+			}
 
-		$order = wc_get_order($order_id);
-		$items = $order->get_items();
-		$products = [];
-		foreach ($items as $orderItem) {
-			$product = wc_get_product($orderItem->get_product_id());
-			$cryptum_nft_enabled = $product->get_meta('_cryptum_nft_options_token_enable');
-			if (isset($cryptum_nft_enabled) and $cryptum_nft_enabled == 'yes') {
-				$products[] = [
-					'id' => $product->get_id(),
-					'name' => $product->get_name(),
-					'value' => $product->get_price(),
-					'quantity' => $orderItem->get_quantity(),
-					'tokenURI' => trim($product->get_meta('_cryptum_nft_options_token_uri'))
-				];
+			$items = $order->get_items();
+			$products = [];
+			foreach ($items as $orderItem) {
+				$product = wc_get_product($orderItem->get_product_id());
+				$cryptum_nft_enabled = $product->get_meta('_cryptum_nft_options_token_enable');
+				if (isset($cryptum_nft_enabled) and $cryptum_nft_enabled == 'yes') {
+					$products[] = [
+						'id' => $product->get_id(),
+						'name' => $product->get_name(),
+						'value' => $product->get_price(),
+						'quantity' => $orderItem->get_quantity(),
+						'tokenURI' => trim($product->get_meta('_cryptum_nft_options_token_uri'))
+					];
+				}
+			}
+
+			if (count($products) == 0) {
+				return;
+			}
+
+			$emailAddress = !empty($order->get_billing_email()) ? $order->get_billing_email() : $user->get('email');
+			$url = $options['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://api-dev.cryptum.io';
+			$response = wp_safe_remote_post("$url/checkout/prepare-nft-order?protocol=$blockchain", [
+				'body' => [
+					'storeId' => $options['storeId'],
+					'contractAddress' => $options['contractAddress'],
+					'emailAddress' => $emailAddress,
+					'products' => $products
+				],
+				'headers' => ['x-api-key' => $options['apikey']],
+				'data_format' => 'body',
+				'method' => 'POST',
+				'timeout' => 60
+			]);
+			if (is_wp_error($response)) {
+				_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+				add_settings_error(
+					'cryptum_nft',
+					'Processing error',
+					__($response->get_error_message(), 'cryptum_nft'),
+					'error'
+				);
+				return;
+			}
+			$responseBody = json_decode($response['body'], true);
+			if (isset($responseBody['error'])) {
+				$error_message = $responseBody['error']['message'];
+				_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+				add_settings_error(
+					'cryptum_nft',
+					'Processing error',
+					__($error_message, 'cryptum_nft'),
+					'error'
+				);
+				return;
 			}
 		}
-
-		$url = $options['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://api-dev.cryptum.io';
-		$response = wp_safe_remote_post("$url/checkout/prepare-nft-order?protocol=$blockchain", [
-			'body' => json_encode([
-				'storeId' => $options['storeId'],
-				'contractAddress' => $options['contractAddress'],
-				'emailAddress' => $order->get_billing_email(),
-				'products' => $products
-			]),
-			'headers' => ['x-api-key' => $options['apikey']],
-			'data_format' => 'body',
-			'method' => 'POST',
-			'timeout' => 60
-		]);
-		if (is_wp_error($response)) {
-			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-			wc_add_notice(
-				__($response->get_error_message(), 'cryptum_nft'),
-				'error'
-			);
-			return;
-		}
-		$responseBody = json_decode($response['body'], true);
-		if (isset($responseBody['error'])) {
-			$error_message = $responseBody['error']['message'];
-			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-			wc_add_notice(
-				__($error_message, 'cryptum_nft'),
-				'error'
-			);
-			return;
-		}
-	}, 10, 1);
+	}, 10, 3);
 }
 
 function _log($message, $level = 'info')
