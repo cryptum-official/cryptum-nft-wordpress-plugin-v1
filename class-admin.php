@@ -3,35 +3,51 @@
 function cryptum_nft_init()
 {
 	register_setting('cryptum_nft_options', 'cryptum_nft', function ($input) {
-		// $options = get_option('cryptum_nft');
-		// $url = $input['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://api-dev.cryptum.io';
-		// $contractAddress = $input['contractAddress'];
+		$options = get_option('cryptum_nft');
+		$url = $input['environment'] == 'production' ? 'https://api.cryptum.io' : 'https://api-dev.cryptum.io';
+		$contractAddress = $input['contractAddress'];
+		$blockchain = $input['blockchain'];
 
-		// $response = wp_safe_remote_get("$url/issue?protocol=", ['x-api-key' => $input['apikey']]);
+		$response = wp_safe_remote_get("$url/account/admin-main/issue", [
+			'headers' => ['x-api-key' => $input['apikey']]
+		]);
 
-		// if (is_wp_error($response)) {
-		// 	_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-		// 	add_settings_error(
-		// 		'cryptum_nft',
-		// 		'Configuration error',
-		// 		__($response->get_error_message(), 'cryptum_nft'),
-		// 		'error'
-		// 	);
-		// 	return $options;
-		// }
-		// $responseBody = json_decode($response['body'], true);
+		if (is_wp_error($response)) {
+			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+			add_settings_error(
+				'cryptum_nft',
+				'Configuration error',
+				__($response->get_error_message(), 'cryptum_nft'),
+				'error'
+			);
+			return $options;
+		}
+		$responseBody = json_decode($response['body'], true);
 
-		// if (isset($responseBody['error'])) {
-		// 	$error_message = $responseBody['error']['message'];
-		// 	_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-		// 	add_settings_error(
-		// 		'cryptum_nft',
-		// 		'Configuration error',
-		// 		__($error_message, 'cryptum_nft'),
-		// 		'error'
-		// 	);
-		// 	return $options;
-		// }
+		if (isset($responseBody['error'])) {
+			$error_message = $responseBody['error']['message'];
+			_log(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+			add_settings_error(
+				'cryptum_nft',
+				'Configuration error',
+				__($error_message, 'cryptum_nft'),
+				'error'
+			);
+			return $options;
+		}
+
+		$foundAddress = array_filter($responseBody, function ($obj) use ($contractAddress, $blockchain) {
+			return $obj['deployAddress'] == $contractAddress and $obj['protocol'] == $blockchain;
+		});
+		if (!isset($foundAddress) or empty($foundAddress)) {
+			add_settings_error(
+				'cryptum_nft',
+				'Configuration error',
+				__('Invalid NFT contract address. You must create or add the NFT contract in Cryptum dashboard first.', 'cryptum_nft'),
+				'error'
+			);
+			return $options;
+		}
 
 		return $input;
 	});
@@ -123,8 +139,8 @@ function cryptum_nft_options()
 							<td>
 								<select name="cryptum_nft[blockchain]">
 									<option value="CELO" <?php if ($options['blockchain'] == 'CELO') {
-																	echo ' selected="selected"';
-																} ?>>CELO</option>
+																echo ' selected="selected"';
+															} ?>>CELO</option>
 								</select>
 								<br>
 								<p><?php echo __('Choose your blockchain that your token was issued'); ?></p>
