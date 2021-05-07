@@ -19,8 +19,8 @@ This plugin allows you to mint a NFT whenever a customer purchases a product.
 
 = Minimum Requirements =
 * PHP 5.2 or greater is recommended
-* WordPress 4.7 or greater is recommended
-* WooCommerce 2.1 or greater is recommended
+* WordPress 5.5 or greater is recommended
+* WooCommerce 5.0 or greater is recommended
 
 Automatic installation is the easiest option -- WordPress will handle the file transfer, and you won’t need to leave your web browser.
 
