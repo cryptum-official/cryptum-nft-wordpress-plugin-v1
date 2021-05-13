@@ -29,7 +29,7 @@ if (is_admin() && (!defined('DOING_AJAX') || !DOING_AJAX)) {
 
 function cryptum_nft_plugin_loaded()
 {
-	wp_enqueue_style('jquery-ui', 'http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
+	wp_enqueue_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
 	wp_enqueue_style('fontawesome', 'https://use.fontawesome.com/releases/v5.7.1/css/all.css');
 	wp_enqueue_script('jquery-ui', 'https://code.jquery.com/ui/1.12.1/jquery-ui.js', ['jquery'], true);
 
